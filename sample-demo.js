@@ -1368,7 +1368,7 @@ const Game = {
   Dialog: Dialog,
   accept: game_accept,
   detect_external_links: 'match',
-  spacing: 4,
+  spacing: 0,
 };
 
 $('document').ready(() => GlkOte.init(Game));
