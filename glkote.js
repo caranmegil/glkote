@@ -432,7 +432,9 @@ function measure_window() {
   line1size = get_size(gridline1);
   line2size = get_size(gridline2);
 
-  metrics.gridcharheight = gridline2.position().top - gridline1.position().top;
+  /* remglk assumes gridcharheight is an integer; rounding fixes browser zoom bug
+     https://github.com/erkyrath/lectrote/issues/133 */
+  metrics.gridcharheight = Math.ceil(gridline2.position().top - gridline1.position().top);
   metrics.gridcharwidth = gridspan.width() / 8;
   /* Yes, we can wind up with a non-integer charwidth value. */
 
