@@ -134,6 +134,11 @@
   font-weight: bold;
 }
 
+input:focus::placeholder {
+  /* Hide "Tap here to type" placeholder when the input is focused */
+  color: transparent;
+}
+
 .BufferWindow .Input {
   font-family: Palatino, Georgia, "Times New Roman", Times, serif;
   font-size: 15px;
