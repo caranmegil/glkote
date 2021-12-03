@@ -1420,6 +1420,7 @@ function accept_one_content(arg) {
         { id: 'win'+win.id+'_cursor', 'class': 'InvisibleCursor' } );
       cursel.append(NBSP);
       divel.append(cursel);
+      divel.click(function () { if (win.inputel) win.inputel.focus(); });
 
       if (win.inputel) {
         /* Put back the inputel that we found earlier. */
@@ -1431,10 +1432,9 @@ function accept_one_content(arg) {
            buffermarginx is one pixel too low. We fudge for that, giving a
            result which errs on the low side. */
         var width = win.frameel.width() - (current_metrics.buffermarginx + pos.left + 2);
-        if (width < 1)
-          width = 1;
-        inputel.css({ position: 'absolute',
-          left: '0px', top: '0px', width: width+'px' });
+        if (width < 200)
+          width = 200;
+        inputel.css({ width: width+'px' });
 
         // Set colours and reverse from last input
         if (win.lastrdesc && win.input.type === 'line')
@@ -1641,10 +1641,9 @@ function accept_inputset(arg) {
            buffermarginx is one pixel too low. We fudge for that, giving a
            result which errs on the low side. */
       let width = win.frameel.width() - (current_metrics.buffermarginx + pos.left + 2);
-      if (width < 1)
-        width = 1;
-      inputel.css({ position: 'absolute',
-        left: '0px', top: '0px', width: width+'px' });
+      if (width < 200)
+        width = 200;
+      inputel.css({ width: width+'px' });
       if (newinputel)
         cursel.append(inputel);
     }
