@@ -69,6 +69,7 @@ var graphics_draw_queue = [];
 var request_timer = null;
 var request_timer_interval = null;
 var resize_timer = null;
+var visual_viewport_scroll_timer = null;
 var retry_timer = null;
 var perform_paging = true;
 var detect_external_links = false;
@@ -381,9 +382,6 @@ function measure_window() {
   metrics.width  = gameport.width();
   metrics.height = gameport.height();
 
-  metrics.width  = gameport.width();
-  metrics.height = gameport.height();
-
   /* Create a dummy layout div containing a grid window and a buffer window,
      each with two lines of text. */
   var layout_test_pane = $('<div>', { 'id':'layout_test_pane' });
@@ -593,14 +591,29 @@ function create_resize_sensors() {
   shrinkel.on('scroll', evhan);
   expandel.on('scroll', evhan);
 
-  /* Move the top-most grid window into the viewport
-    when the iOS virtual keyboard pops up. */
   if (window.visualViewport) {
-    var visualViewportHandler = function () {
+    /* Move the top-most grid window into the viewport
+    when the iOS virtual keyboard pops up. */
+    var scrollHandler = function () {
+      visual_viewport_scroll_timer = null;
       $('.topgrid').css({ top: visualViewport.offsetTop });
     }
-    visualViewport.addEventListener('resize', visualViewportHandler);
-    visualViewport.addEventListener('scroll', visualViewportHandler);
+    /* we debounce the scroll handler to prevent the top grid from flickering 
+      to the bottom of the screen while we're scrolling down to new content */
+    var debounceScrollHandler = function() {
+      if (visual_viewport_scroll_timer) {
+        clearTimeout(visual_viewport_scroll_timer);
+      }
+      visual_viewport_scroll_timer = delay_func(0.20, scrollHandler);
+    }
+
+    /* resize the gameport to match the size of the visual viewport */
+    visualViewport.addEventListener('resize', function() {
+      debounceScrollHandler();
+      $('#gameport').css({ height: visualViewport.height });
+      doc_resize_real();
+    });
+    visualViewport.addEventListener('scroll', debounceScrollHandler);
   }
 }
 
@@ -3037,6 +3050,24 @@ function evhan_input_focus(ev) {
   //currently_focussed = true;
   last_known_focus = winid;
   last_known_paging = winid;
+
+  // On iOS, when focusing the soft keyboard, the keyboard animates in over 500ms
+  // This would normally cover up the focused input, so iOS cleverly tries to
+  // scroll the top-level window down to bring the input into the view
+  // But we know better: we want to scroll the input's window frame to the bottom,
+  // without scrolling the top-level window at all.
+
+  // iOS 1. scroll the window frame to the bottom
+  var winFrame = win.frameel[0];
+  winFrame.scrollTo(0, winFrame.scrollHeight);
+
+  // iOS 2. To undo scrolling the top-level window, we have to scrollTo(0,0)
+  // repeatedly
+  function scrolling(count) {
+    window.scrollTo(0, 0);
+    if (count > 0) setTimeout(scrolling, 10, count - 1);
+  }
+  scrolling(50);
 }
 
 /* Event handler: blur events on input fields
