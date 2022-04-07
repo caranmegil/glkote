@@ -46,9 +46,9 @@ var Glk = function() {
 var VM = null;
 
 // References to external libraries
+let Blorb = null;
 let Dialog = null;
 let GiDispa = null;
-let GiLoad = null;
 let GlkOte = null;
 
 /* Environment capabilities. (Checked at init time.) */
@@ -99,9 +99,9 @@ function init(vm_options) {
         GiDispa = vm_options.GiDispa;
     }
 
-    if (vm_options.GiLoad)
+    if (vm_options.Blorb)
     {
-        GiLoad = vm_options.GiLoad;
+        Blorb = vm_options.Blorb;
     }
 
     if (vm_options.GlkOte)
@@ -114,8 +114,17 @@ function init(vm_options) {
     }
 
     VM = vm_options.vm;
-    if (GiDispa)
-        GiDispa.set_vm(VM);
+    if (GiDispa) {
+        if (GiDispa.set_vm) {
+            GiDispa.set_vm(VM)
+        }
+        else {
+            GiDispa.init({
+                io: this,
+                vm: VM,
+            })
+        }
+    }
 
     vm_options.accept = accept_ui_event;
 
@@ -160,7 +169,8 @@ function accept_ui_event(obj) {
         if (obj.support) {
             obj.support.forEach(item => support[item] = 1);
         }
-        VM.init();
+        // New Quixe API (was VM.init())
+        VM.start();
         break;
 
     case 'external': {
@@ -714,6 +724,22 @@ function update() {
     }
 }
 
+/* Return the library interface object that we were passed or created.
+   Call this if you want to use, e.g., the same Dialog object that GlkOte
+   is using.
+*/
+function get_library(val) {
+    switch (val) {
+        case 'VM': return VM;
+        case 'GlkOte': return GlkOte;
+        case 'GiDispa': return GiDispa;
+        case 'Blorb': return Blorb;
+        case 'Dialog': return GlkOte.getlibrary('Dialog');
+    }
+    /* Unrecognized library name. */
+    return null;
+}
+
 /* Wrap up the current display state as a (JSONable) object. This is
    called from Quixe.vm_autosave.
 */
@@ -1088,7 +1114,7 @@ function restore_allstate(res)
 
         case strtype_Resource:
             str.resfilenum = obj.resfilenum;
-            var el = GiLoad.find_data_chunk(str.resfilenum);
+            var el = Blorb.find_data_chunk(str.resfilenum);
             if (el) {
                 str.buf = el.data;
             }
@@ -1175,6 +1201,11 @@ function restore_allstate(res)
 function fatal_error(msg) {
     has_exited = true;
     ui_disabled = true;
+    if (!GlkOte) {
+        // We haven't been initialized yet, so we can only try to log the error and hope someone sees it.
+        console.log('Fatal error:', msg);
+        return;
+    }
     GlkOte.error(msg);
     var dataobj = { type: 'update', gen: event_generation, disable: true };
     dataobj.input = [];
@@ -4885,9 +4916,9 @@ function glk_stream_open_memory(buf, fmode, rock) {
 function glk_stream_open_resource(filenum, rock) {
     var str;
 
-    if (!GiLoad || !GiLoad.find_data_chunk)
+    if (!Blorb || !Blorb.find_data_chunk)
         return null;
-    var el = GiLoad.find_data_chunk(filenum);
+    var el = Blorb.find_data_chunk(filenum);
     if (!el)
         return null;
 
@@ -4924,9 +4955,9 @@ function glk_stream_open_resource(filenum, rock) {
 function glk_stream_open_resource_uni(filenum, rock) {
     var str;
 
-    if (!GiLoad || !GiLoad.find_data_chunk)
+    if (!Blorb || !Blorb.find_data_chunk)
         return null;
-    var el = GiLoad.find_data_chunk(filenum);
+    var el = Blorb.find_data_chunk(filenum);
     if (!el)
         return null;
 
@@ -5611,10 +5642,10 @@ function glk_request_timer_events(msec) {
 /* Graphics functions. */
 
 function glk_image_get_info(imgid, widthref, heightref) {
-    if (!GiLoad || !GiLoad.get_image_info)
+    if (!Blorb || !Blorb.get_image_info)
         return null;
 
-    var info = GiLoad.get_image_info(imgid);
+    var info = Blorb.get_image_info(imgid);
     if (info) {
         if (widthref)
             widthref.set_value(info.width);
@@ -5633,9 +5664,9 @@ function glk_image_draw(win, imgid, val1, val2) {
     if (!win)
         throw('glk_image_draw: invalid window');
 
-    if (!GiLoad || !GiLoad.get_image_info)
+    if (!Blorb || !Blorb.get_image_info)
         return 0;
-    var info = GiLoad.get_image_info(imgid);
+    var info = Blorb.get_image_info(imgid);
     if (!info)
         return 0;
 
@@ -5683,9 +5714,9 @@ function glk_image_draw_scaled(win, imgid, val1, val2, width, height) {
     if (!win)
         throw('glk_image_draw_scaled: invalid window');
 
-    if (!GiLoad || !GiLoad.get_image_info)
+    if (!Blorb || !Blorb.get_image_info)
         return 0;
-    var info = GiLoad.get_image_info(imgid);
+    var info = Blorb.get_image_info(imgid);
     if (!info)
         return 0;
 
@@ -6487,6 +6518,7 @@ return {
     version: '2.2.5', /* GlkOte/GlkApi version */
     init : init,
     update : update,
+    getlibrary : get_library,
     save_allstate : save_allstate,
     restore_allstate : restore_allstate,
     fatal_error : fatal_error,
