@@ -619,7 +619,7 @@ function evhan_storage_changed(/*ev*/) {
     if (!is_open)
         return false;
 
-    var el, bodyel, butel, ls, lastusage;
+    var butel, el;
 
     //var changedkey = null;
     //if (ev)
@@ -628,7 +628,7 @@ function evhan_storage_changed(/*ev*/) {
     /* We could use the changedkey to decide whether it's worth redrawing 
        the field here. */
 
-    bodyel = $('#'+dialog_el_id+'_body');
+    const bodyel = $('#'+dialog_el_id+'_body');
     if (!bodyel.length)
         return false;
 
@@ -652,7 +652,7 @@ function evhan_storage_changed(/*ev*/) {
 
         /* ### Make the unjustified assumption that this is an array of
            character values (as ints). */
-        var dat = file_read(editing_dirent);
+        let dat = file_read(editing_dirent);
         /* ### This doesn't correctly handle Unicode characters outside the
            16-bit range. */
         dat = String.fromCharCode.apply(this, dat);
@@ -682,7 +682,7 @@ function evhan_storage_changed(/*ev*/) {
            not files specific to other games, i.e., save files for different
            games). 
         */
-        ls = files_list(null, cur_gameid);
+        let ls = files_list(null, cur_gameid);
         if (cur_gameid != '') {
             ls = ls.concat(files_list(null, ''));
         }
@@ -706,9 +706,9 @@ function evhan_storage_changed(/*ev*/) {
         }
 
         cur_filelist = [];
-        lastusage = '';
+        let lastusage = '';
         for (let ix=0; ix<ls.length; ix++) {
-            file = ls[ix];
+            const file = ls[ix];
             if (file.dirent.usage != lastusage) {
                 lastusage = file.dirent.usage;
                 cur_filelist.push({ label:lastusage });
@@ -721,10 +721,9 @@ function evhan_storage_changed(/*ev*/) {
         
         const selel = $('<select>', { id: dialog_el_id+'_select', name:'files' });
         selel.prop('size', '5'); /* firefox doesn't like this being set in the constructor */
-        let file, datestr;
-        var anyselected = false;
+        let anyselected = false;
         for (let ix=0; ix<ls.length; ix++) {
-            file = ls[ix];
+            const file = ls[ix];
             if (!file.dirent) {
                 el = $('<option>', { name:'f'+ix } );
                 el.prop('disabled', true);
@@ -738,7 +737,7 @@ function evhan_storage_changed(/*ev*/) {
                 anyselected = true;
                 el.selected = true;
             }
-            datestr = format_date(file.modified);
+            const datestr = format_date(file.modified);
             el.text(file.dirent.filename + ' -- ' + datestr);
             selel.append(el);
         }
@@ -754,7 +753,7 @@ function evhan_storage_changed(/*ev*/) {
     /* Basic display mode: the list of available files, plus an input field
        if this is for saving. */
 
-    ls = files_list(cur_usage, cur_gameid);
+    const ls = files_list(cur_usage, cur_gameid);
     /* Sort by date modified */
     ls.sort(function(f1, f2) { return f2.modified.getTime() - f1.modified.getTime(); });
     cur_filelist = ls;

@@ -10,10 +10,12 @@ module.exports = {
         "jQuery": "readonly",
     },
     "parserOptions": {
-        "ecmaVersion": 11,
+        ecmaVersion: 12,
         "sourceType": "module"
     },
+    root: true,
     "rules": {
-        "no-constant-condition": ["error", {"checkLoops": false}],
+        'no-constant-condition': ['off'],
+        'no-use-before-define': ['warn', 'nofunc'],
     }
 };
