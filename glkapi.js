@@ -457,17 +457,13 @@ function update() {
             switch (win.type) {
             case Const.wintype_TextBuffer:
                 obj.type = 'buffer';
-                obj.stylehints = clone_stylehints(win.stylehints)
-                obj.bg = win.cleared_bg
-                obj.fg = win.cleared_fg
+                obj.styles = clone_stylehints(win.stylehints)
                 break;
             case Const.wintype_TextGrid:
                 obj.type = 'grid';
                 obj.gridwidth = win.gridwidth;
                 obj.gridheight = win.gridheight;
-                obj.stylehints = clone_stylehints(win.stylehints)
-                obj.bg = win.cleared_bg
-                obj.fg = win.cleared_fg
+                obj.styles = clone_stylehints(win.stylehints)
                 break;
             case Const.wintype_Graphics:
                 obj.type = 'graphics';
@@ -553,10 +549,19 @@ function update() {
                                 style: StyleNameMap[laststyle],
                                 text: lineobj.chars.slice(lastpos, cx).join(''),
                                 hyperlink: lasthyperlink,
-                                fg: lastfg,
-                                bg: lastbg,
-                                reverse: lastreverse,
                             };
+                            if (lastbg || lastfg || lastreverse) {
+                                robj.css_styles = {}
+                                if (lastbg) {
+                                    robj.css_styles['background-color'] = lastbg
+                                }
+                                if (lastfg) {
+                                    robj.css_styles.color = lastfg
+                                }
+                                if (lastreverse) {
+                                    robj.css_styles.reverse = lastreverse
+                                }
+                            }
                             ls.push(robj);
                         }
                         lastpos = cx;
@@ -689,10 +694,11 @@ function update() {
     }
 
     // Send a live-updated bage background colour
-    if (last_page_bg != stylehints.buffer[0]['background-color'])
+    const current_page_pg = stylehints.buffer['span.Style_normal']?.['background-color']
+    if (last_page_bg != current_page_pg)
     {
-        last_page_bg = stylehints.buffer[0]['background-color']
-        dataobj.page_bg = stylehints.buffer[0]['background-color'] || ''
+        last_page_bg = current_page_pg
+        dataobj.page_margin_bg = current_page_pg || ''
     }
 
     /* Clean this up; it's only meaningful within one run/update cycle. */
@@ -1032,7 +1038,7 @@ function restore_allstate(res)
             win.accum_bg = win.bg
             win.accum_reverse = win.reverse
             win.content = obj.reserve.slice(0);
-            win.clearcontent = false;
+            win.clearcontent = true;
             win.reserve = [];
             win.stylehints = obj.stylehints;
             break;
@@ -1054,7 +1060,7 @@ function restore_allstate(res)
             }
             win.cursorx = obj.cursorx;
             win.cursory = obj.cursory;
-            win.clearcontent = false;
+            win.clearcontent = true;
             win.stylehints = obj.stylehints;
             break;
         case Const.wintype_Graphics:
@@ -3081,15 +3087,24 @@ function gli_window_buffer_deaccumulate(win) {
                     }
                     if (win.accum_fg)
                     {
-                        content.fg = win.accum_fg
+                        if (!content.css_styles) {
+                            content.css_styles = {}
+                        }
+                        content.css_styles.color = win.accum_fg
                     }
                     if (win.accum_bg)
                     {
-                        content.bg = win.accum_bg
+                        if (!content.css_styles) {
+                            content.css_styles = {}
+                        }
+                        content.css_styles['background-color'] = win.accum_bg
                     }
                     if (win.accum_reverse)
                     {
-                        content.reverse = 1
+                        if (!content.css_styles) {
+                            content.css_styles = {}
+                        }
+                        content.css_styles.reverse = 1
                     }
                     arr.push(content)
                 }
@@ -5273,29 +5288,33 @@ function glk_char_to_upper(val) {
 
 var last_page_bg = null
 var stylehints = {
-    buffer: [],
-    grid: [],
+    buffer: {},
+    grid: {},
 }
 
-for (let i = 0; i < Const.style_NUMSTYLES; i++)
-{
-    stylehints.buffer.push({})
-    stylehints.grid.push({})
-}
-
-function clone_stylehints(stylehints)
-{
-    const newstylehints = []
-    for (let i = 0; i < Const.style_NUMSTYLES; i++)
-    {
-        newstylehints.push(Object.assign({}, stylehints[i]))
+function clone_stylehints(stylehints) {
+    const newstylehints = {}
+    for (const [selector, styles] of Object.entries(stylehints)) {
+        newstylehints[selector] = Object.assign({}, styles)
     }
     return newstylehints
 }
 
-var stylehint_properties = ['margin-left', 'text-indent', 'text-align', 'font-size', 'font-weight', 'font-style', 'font-family', 'color', 'background-color', 'reverse']
+const STYLE_NAMES = ['normal', 'emphasized', 'preformatted', 'header', 'subheader', 'alert', 'note', 'blockquote', 'input', 'user1', 'user2']
+const CSS_STYLE_PROPERTIES = ['margin-left', 'text-indent', 'text-align', 'font-size', 'font-weight', 'font-style', 'font-family', 'color', 'background-color', 'reverse']
 
 function glk_stylehint_set(wintype, style, hint, value) {
+    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextBuffer) {
+        add_css_style(stylehints.buffer, style, hint, value)
+    }
+
+    if ((wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextGrid) && hint !== Const.stylehint_Proportional) {
+        add_css_style(stylehints.grid, style, hint, value)
+    }
+}
+
+function add_css_style(styles, style, hint, value) {
+    const selector = `${hint <= Const.stylehint_Justification ? 'div' : 'span'}.Style_${STYLE_NAMES[style]}`
     var stylevalue
     var justifications = ['left', 'justify', 'center', 'right']
     var weights = ['lighter', 'normal', 'bold']
@@ -5350,26 +5369,29 @@ function glk_stylehint_set(wintype, style, hint, value) {
         stylevalue = value
     }
 
-    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextBuffer)
-    {
-        stylehints.buffer[style][stylehint_properties[hint]] = stylevalue
+    if (!styles[selector]) {
+        styles[selector] = {}
     }
-
-    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextGrid)
-    {
-        stylehints.grid[style][stylehint_properties[hint]] = stylevalue
-    }
+    styles[selector][CSS_STYLE_PROPERTIES[hint]] = stylevalue
 }
 
 function glk_stylehint_clear(wintype, style, hint) {
-    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextBuffer)
-    {
-        delete stylehints.buffer[style][stylehint_properties[hint]]
+    const selector = `${hint <= Const.stylehint_Justification ? 'div' : 'span'}.Style_${STYLE_NAMES[style]}`
+    function remove_style(styles) {
+        if (styles[selector]) {
+            delete styles[selector][CSS_STYLE_PROPERTIES[hint]]
+            if (!Object.keys(styles[selector]).length) {
+                delete styles[selector]
+            }
+        }
     }
 
-    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextGrid)
-    {
-        delete stylehints.grid[style][stylehint_properties[hint]]
+    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextBuffer) {
+        remove_style(stylehints.buffer)
+    }
+
+    if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextGrid) {
+        remove_style(stylehints.grid)
     }
 }
 
