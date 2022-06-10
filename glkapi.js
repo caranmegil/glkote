@@ -5301,7 +5301,7 @@ function clone_stylehints(stylehints) {
 }
 
 const STYLE_NAMES = ['normal', 'emphasized', 'preformatted', 'header', 'subheader', 'alert', 'note', 'blockquote', 'input', 'user1', 'user2']
-const CSS_STYLE_PROPERTIES = ['margin-left', 'text-indent', 'text-align', 'font-size', 'font-weight', 'font-style', 'font-family', 'color', 'background-color', 'reverse']
+const CSS_STYLE_PROPERTIES = ['margin-left', 'text-indent', 'text-align', 'font-size', 'font-weight', 'font-style', 'monospace', 'color', 'background-color', 'reverse']
 
 function glk_stylehint_set(wintype, style, hint, value) {
     if (wintype === Const.wintype_AllTypes || wintype === Const.wintype_TextBuffer) {
@@ -5351,7 +5351,7 @@ function add_css_style(styles, style, hint, value) {
 
     if (hint === Const.stylehint_Proportional)
     {
-        stylevalue = value ? 'var(--glkote-prop-family)' : 'var(--glkote-mono-family)'
+        stylevalue = value ? 0 : 1
     }
 
     if (hint === Const.stylehint_TextColor)
