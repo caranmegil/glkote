@@ -1848,12 +1848,12 @@ function refresh_cleared_styles(win, bg, fg)
   if (win.stylehints)
   {
     let styles_need_refreshing
-    if (typeof bg !== undefined)
+    if (bg !== undefined)
     {
       win.stylehints.win_bg = bg
       styles_need_refreshing = 1
     }
-    if (typeof fg !== undefined)
+    if (fg !== undefined)
     {
       win.stylehints.win_fg = fg
       styles_need_refreshing = 1
