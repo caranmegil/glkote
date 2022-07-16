@@ -126,7 +126,9 @@ function init(vm_options) {
         }
     }
 
+
     vm_options.accept = accept_ui_event;
+
 
     GlkOte.init(vm_options);
 
@@ -6556,6 +6558,7 @@ return {
     glk_put_jstring : glk_put_jstring,
     glk_put_jstring_stream : glk_put_jstring_stream,
 
+    gli_window_close : gli_window_close,
     glk_exit : glk_exit,
     glk_tick : glk_tick,
     glk_gestalt : glk_gestalt,
